@@ -25,12 +25,12 @@ By default, the library is configured to use the standard SPI pins of the ESP32-
 
 | Component | ESP32-C3 Pin | :--- |
 | :--- | :--- | :--- |
-| TFT MOSI | Default SPI MOSI | GPIO | 
-| TFT SCLK | Default SPI SCLK | GPIO |
-| TFT CS | Defined in `User_Setup` | GPIO |
-| TFT DC | Defined in `User_Setup` | GPIO |
-| TFT RST | Defined in `User_Setup` | GPIO |
-| SD Card MISO | Default SPI MISO *(Only if using SD!)* | GPIO |
+| TFT MOSI | Default SPI MOSI | GPIO 6| 
+| TFT SCLK | Default SPI SCLK | GPIO 4|
+| TFT CS | Defined in `User_Setup` | GPIO 7|
+| TFT DC | Defined in `User_Setup` | GPIO 8|
+| TFT RST | Defined in `User_Setup` | GPIO 5|
+| SD Card MISO | Default SPI MISO *(Only if using SD!)* | GPIO 1|
 
 *(Note: Check your specific ESP32-C3 board's pinout diagram for the exact default SPI GPIO numbers).*
 
