@@ -29,7 +29,7 @@ void ST7789_ESP32C3::writeCommand(uint8_t c) {
   spi->write(c);   
   if (!_inTransaction) {
     CS_HIGH();
-    spi->endTransaction(); // Release bus!
+    spi->endTransaction();
   }
 }
 
@@ -685,8 +685,13 @@ void ST7789_ESP32C3::drawBmp(fs::FS &fs, const char *filename, int16_t x, int16_
 ST7789_Sprite::ST7789_Sprite(ST7789_ESP32C3 *tft) {
   _tft = tft;
   _buffer = nullptr;
-  _sw = 0;
-  _sh = 0;
+  _sw = 0;  _sh = 0;
+  
+  cursor_x = 0; cursor_y = 0;
+  textsize = 1;
+  textcolor = 0xFFFF; textbgcolor = 0xFFFF;
+  wrap = true;
+  gfxFont = NULL;
 }
 
 ST7789_Sprite::~ST7789_Sprite() {
@@ -695,12 +700,9 @@ ST7789_Sprite::~ST7789_Sprite() {
 
 void* ST7789_Sprite::createSprite(int16_t w, int16_t h) {
   deleteSprite();
-  
   _buffer = (uint16_t*)malloc(w * h * sizeof(uint16_t));
-  
   if (_buffer) {
-    _sw = w;
-    _sh = h;
+    _sw = w; _sh = h;
     fillSprite(0x0000);
   }
   return _buffer;
@@ -721,6 +723,10 @@ void ST7789_Sprite::fillSprite(uint16_t color) {
   }
 }
 
+void ST7789_Sprite::fillScreen(uint16_t color) {
+  fillSprite(color);
+}
+
 void ST7789_Sprite::drawPixel(int16_t x, int16_t y, uint16_t color) {
   if (!_buffer || x < 0 || x >= _sw || y < 0 || y >= _sh) return;
   _buffer[y * _sw + x] = (color >> 8) | (color << 8); 
@@ -737,13 +743,134 @@ void ST7789_Sprite::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_
 
 void ST7789_Sprite::pushSprite(int16_t x, int16_t y) {
   if (!_buffer) return;
-
-  _tft->setWindow(x, y, x + _sw - 1, y + _sh - 1);
-  
+  _tft->setAddrWindow(x, y, _sw, _sh);
   DC_HIGH();
-  CS_LOW();
-
+  if (!_tft->_inTransaction) CS_LOW(); 
   _tft->spi->writeBytes((uint8_t*)_buffer, _sw * _sh * 2);
+  if (!_tft->_inTransaction) CS_HIGH();
+}
 
-  CS_HIGH();
+void ST7789_Sprite::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color) {
+  fillRect(x, y, 1, h, color);
+}
+
+void ST7789_Sprite::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color) {
+  fillRect(x, y, w, 1, color);
+}
+
+void ST7789_Sprite::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
+  drawFastHLine(x, y, w, color);
+  drawFastHLine(x, y + h - 1, w, color);
+  drawFastVLine(x, y, h, color);
+  drawFastVLine(x + w - 1, y, h, color);
+}
+
+void ST7789_Sprite::fillCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color) {
+  drawFastVLine(x0, y0 - r, 2 * r + 1, color);
+  int16_t f     = 1 - r;
+  int16_t ddF_x = 1;
+  int16_t ddF_y = -2 * r;
+  int16_t x     = 0;
+  int16_t y     = r;
+
+  while (x < y) {
+    if (f >= 0) { y--; ddF_y += 2; f += ddF_y; }
+    x++; ddF_x += 2; f += ddF_x;
+    drawFastVLine(x0 + x, y0 - y, 2 * y + 1, color);
+    drawFastVLine(x0 + y, y0 - x, 2 * x + 1, color);
+    drawFastVLine(x0 - x, y0 - y, 2 * y + 1, color);
+    drawFastVLine(x0 - y, y0 - x, 2 * x + 1, color);
+  }
+}
+
+void ST7789_Sprite::setCursor(int16_t x, int16_t y) { cursor_x = x; cursor_y = y; }
+void ST7789_Sprite::setTextColor(uint16_t c) { textcolor = c; textbgcolor = c; }
+void ST7789_Sprite::setTextColor(uint16_t c, uint16_t bg) { textcolor = c; textbgcolor = bg; }
+void ST7789_Sprite::setTextSize(uint8_t s) { textsize = (s > 0) ? s : 1; }
+void ST7789_Sprite::setTextWrap(bool w) { wrap = w; }
+void ST7789_Sprite::setFont(const GFXfont *f) { gfxFont = (GFXfont *)f; }
+
+void ST7789_Sprite::drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size) {
+  if(!gfxFont) { 
+#ifdef LOAD_GLCD
+    if ((c >= 32) && (c <= 127)) {
+      for (int8_t i = 0; i < 5; i++) {
+        uint8_t line = font[(c - 32) * 5 + i];
+        for (int8_t j = 0; j < 8; j++, line >>= 1) {
+          if (line & 1) {
+            if (size == 1) drawPixel(x + i, y + j, color);
+            else           fillRect(x + i * size, y + j * size, size, size, color);
+          } else if (bg != color) {
+            if (size == 1) drawPixel(x + i, y + j, bg);
+            else           fillRect(x + i * size, y + j * size, size, size, bg);
+          }
+        }
+      }
+    }
+#endif 
+  } else { 
+#ifdef LOAD_GFXFF
+    if ((c >= gfxFont->first) && (c <= gfxFont->last)) {
+      c -= gfxFont->first;
+      GFXglyph *glyph  = &(((GFXglyph *)pgm_read_ptr(&gfxFont->glyph))[c]);
+      uint8_t  *bitmap = (uint8_t *)pgm_read_ptr(&gfxFont->bitmap);
+      uint16_t bo = pgm_read_word(&glyph->bitmapOffset);
+      uint8_t  w  = pgm_read_byte(&glyph->width),
+               h  = pgm_read_byte(&glyph->height);
+      int8_t   xo = pgm_read_byte(&glyph->xOffset),
+               yo = pgm_read_byte(&glyph->yOffset);
+      uint8_t  xx, yy, bits = 0, bit = 0;
+
+      for (yy = 0; yy < h; yy++) {
+        for (xx = 0; xx < w; xx++) {
+          if (!(bit++ & 7)) bits = pgm_read_byte(&bitmap[bo++]);
+          if (bits & 0x80) {
+            if (size == 1) drawPixel(x + xo + xx, y + yo + yy, color);
+            else           fillRect(x + (xo + xx) * size, y + (yo + yy) * size, size, size, color);
+          }
+          bits <<= 1;
+        }
+      }
+    }
+#endif 
+  }
+}
+
+size_t ST7789_Sprite::write(uint8_t c) {
+  if (!gfxFont) { 
+#ifdef LOAD_GLCD
+    if (c == '\n') {
+      cursor_y += textsize * 8;
+      cursor_x  = 0;
+    } else if (c != '\r') {
+      if (wrap && ((cursor_x + textsize * 6) > _sw)) {
+        cursor_x = 0;
+        cursor_y += textsize * 8;
+      }
+      drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
+      cursor_x += textsize * 6; 
+    }
+#endif 
+  } else { 
+#ifdef LOAD_GFXFF
+    if (c == '\n') {
+      cursor_x  = 0;
+      cursor_y += (uint8_t)pgm_read_byte(&gfxFont->yAdvance) * textsize;
+    } else if (c != '\r') {
+      uint8_t first = pgm_read_byte(&gfxFont->first);
+      if ((c >= first) && (c <= (uint8_t)pgm_read_byte(&gfxFont->last))) {
+        GFXglyph *glyph = &(((GFXglyph *)pgm_read_ptr(&gfxFont->glyph))[c - first]);
+        uint8_t w = pgm_read_byte(&glyph->width);
+        uint8_t xa = pgm_read_byte(&glyph->xAdvance);
+        if (wrap && ((cursor_x + w * textsize) > _sw)) {
+          cursor_x = 0;
+          cursor_y += (uint8_t)pgm_read_byte(&gfxFont->yAdvance) * textsize;
+        }
+        drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
+        cursor_x += xa * textsize;
+      }
+    }
+#endif 
+  }
+  return 1;
 }
