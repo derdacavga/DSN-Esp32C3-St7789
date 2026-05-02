@@ -53,11 +53,11 @@ This is an important step! Just like `TFT_eSPI`, you must configure the library 
 
 If you are familiar with `TFT_eSPI`, you will feel right at home. This library supports all the fundamental drawing functions with virtually zero learning curve.
 
-Open the Arduino IDE and navigate to **File > Examples > [Your Library Name]** to try these out:
+Open the Arduino IDE and navigate to **File > Examples > DSN-Esp32C3-St7789** to try these out:
 
-*   **`graphic_test`:** A benchmark and syntax demonstration. You can upload this directly without changing any code. It tests the drawing speeds for lines, rectangles, circles, and text.
-*   **`Sprite`:** Demonstrates how to use sprite functions for flicker-free drawing and smooth UI elements. 
-*   **`sd_image_reader`:** A powerful example showing how to read bitmap/image files directly from a Micro SD card and render them to the display seamlessly using shared SPI.
+*   **`Graphicstest_Example`:** A benchmark and syntax demonstration. You can upload this directly without changing any code. It tests the drawing speeds for lines, rectangles, circles, and text.
+*   **`Sprite_Example`:** Demonstrates how to use sprite functions for flicker-free drawing and smooth UI elements. 
+*   **`Bitmap_Example`:** A powerful example showing how to read bitmap/image files directly from a Micro SD card and render them to the display seamlessly using shared SPI.
 
 ---
 ## 🤝 Support
