@@ -4,8 +4,13 @@ A lightweight, fully functional TFT display library specifically designed for us
 
 This library was built from the ground up to ensure stable, fast rendering without relying on bulky dependencies—making it a perfect foundation for developing custom hardware platforms, such as an integrated handheld gaming console ecosystem or a smart IoT dashboard.
 
-📺 **[Watch the Tutorial Video Here](INSERT_YOUTUBE_LINK_HERE)**
+## 📺 Video Tutorial
 
+Build your own following the step-by-step guide!
+
+[![Watch the tutorial](https://img.youtube.com/vi/uEXNxMuddvU/0.jpg)](https://www.youtube.com/watch?v=uEXNxMuddvU)
+
+> **Click the image above to watch the full tutorial on YouTube.**
 ## 🛠️ Hardware Checklist
 
 To use this library and run the provided examples, you will need:
@@ -54,9 +59,22 @@ Open the Arduino IDE and navigate to **File > Examples > [Your Library Name]** t
 *   **`Sprite`:** Demonstrates how to use sprite functions for flicker-free drawing and smooth UI elements. 
 *   **`sd_image_reader`:** A powerful example showing how to read bitmap/image files directly from a Micro SD card and render them to the display seamlessly using shared SPI.
 
+---
 ## 🤝 Support
 
-If you found this custom library helpful for your builds, please consider:
-*   Subscribing to the [YouTube Channel](https://www.youtube.com/@DsnIndustries/videos) to help hit those subscriber and watch time targets!
-*   Giving the video a Like 👍
-*   Starring this GitHub Repository! ⭐
+If you found this project helpful, please consider:
+* **Subscribing** to the YouTube Channel.
+* Giving the video a **Like**.
+* Starring this GitHub Repository!
+
+* **YouTube:** https://www.youtube.com/@DsnIndustries/videos
+* **Patreon:** https://www.patreon.com/c/dsnIndustries
+
+Happy Making!
+
+## Games
+* **Maze Escape:** https://play.google.com/store/apps/details?id=com.DsnMechanics.MazeEscape
+* **Air Hockey:** https://play.google.com/store/apps/details?id=com.DsnMechanics.AirHockey
+* **Click Challenge:** https://play.google.com/store/apps/details?id=com.DsNMechanics.ClickChallenge
+* **Flying Triangels:** https://play.google.com/store/apps/details?id=com.DsnMechanics.Triangle
+* **SkyScrapper:** https://play.google.com/store/apps/details?id=com.DsnMechanics.SkyScraper
