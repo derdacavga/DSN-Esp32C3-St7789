@@ -4,6 +4,12 @@
   #include "glcdfont.h" 
 #endif
 
+#if defined(ST7789_1_30_LCD)
+  #define spiMode SPI_MODE3 
+#elif defined(ST7789_1_69_LCD)
+  #define spiMode SPI_MODE0
+#endif
+
 ST7789_ESP32C3::ST7789_ESP32C3() {
   _width = TFT_WIDTH;
   _height = TFT_HEIGHT;
@@ -23,7 +29,7 @@ ST7789_ESP32C3::ST7789_ESP32C3() {
 void ST7789_ESP32C3::writeCommand(uint8_t c) {
   DC_LOW();
   if (!_inTransaction) {
-    spi->beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
+    spi->beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, spiMode));
     CS_LOW(); 
   }
   spi->write(c);   
@@ -36,7 +42,7 @@ void ST7789_ESP32C3::writeCommand(uint8_t c) {
 void ST7789_ESP32C3::writeData(uint8_t d) {
   DC_HIGH();
   if (!_inTransaction) {
-    spi->beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
+    spi->beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, spiMode));
     CS_LOW(); 
   }
   spi->write(d);   
@@ -49,93 +55,13 @@ void ST7789_ESP32C3::writeData(uint8_t d) {
 void ST7789_ESP32C3::writeData16(uint16_t d) {
   DC_HIGH();
   if (!_inTransaction) {
-    spi->beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
+    spi->beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, spiMode));
     CS_LOW(); 
   }
   spi->write16(d); 
   if (!_inTransaction) {
     CS_HIGH();
     spi->endTransaction(); 
-  }
-}
-
-void ST7789_ESP32C3::init() {
-  pinMode(TFT_DC, OUTPUT);
-  pinMode(TFT_CS, OUTPUT);
-  if (TFT_RST != -1) {
-    pinMode(TFT_RST, OUTPUT);
-    digitalWrite(TFT_RST, HIGH); delay(10);
-    digitalWrite(TFT_RST, LOW);  delay(10);
-    digitalWrite(TFT_RST, HIGH); delay(150); 
-  }
-
-  if (TFT_BL != -1) {
-    pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, HIGH);
-  }
-
-  spi = &SPI;
-  spi->begin(TFT_SCLK, TFT_MISO, TFT_MOSI, TFT_CS);
-
-  writeCommand(0x01);
-  delay(150);
-
-  writeCommand(ST7789_SLPOUT);
-  delay(120);
-
-  writeCommand(ST7789_COLMOD);
-  writeData(0x55);
-
-  writeCommand(ST7789_MADCTL);
-  writeData(0x00);
-
-  writeCommand(ST7789_INVON);  
-
-  writeCommand(ST7789_NORON);
-  delay(10);
-
-  writeCommand(ST7789_DISPON);
-  delay(120);
-
-  setRotation(0); 
-}
-
-void ST7789_ESP32C3::setRotation(uint8_t m) {
-  _rotation = m % 4; 
-  writeCommand(ST7789_MADCTL);
-
-  switch (_rotation) {
-    case 0: 
-      writeData(0x00);
-      _width  = 240; 
-      _height = 280; 
-      _xstart = 0; 
-      _ystart = 20;
-      break;
-
-    case 1: 
-      writeData(0x60);
-      _width  = 280; 
-      _height = 240; 
-      _xstart = 20; 
-      _ystart = 0; 
-      break;
-
-    case 2: 
-      writeData(0xC0);
-      _width  = 240; 
-      _height = 280; 
-      _xstart = 0; 
-      _ystart = 20;
-      break;
-
-    case 3: 
-      writeData(0xA0);
-      _width  = 280; 
-      _height = 240; 
-      _xstart = 20; 
-      _ystart = 0;
-      break;
   }
 }
 
@@ -437,7 +363,7 @@ void ST7789_ESP32C3::setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t 
 
 void ST7789_ESP32C3::startWrite() { 
   _inTransaction = true; 
-  spi->beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
+  spi->beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, spiMode));
   CS_LOW(); 
 }
 
@@ -780,6 +706,66 @@ void ST7789_Sprite::fillCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color
     drawFastVLine(x0 + y, y0 - x, 2 * x + 1, color);
     drawFastVLine(x0 - x, y0 - y, 2 * y + 1, color);
     drawFastVLine(x0 - y, y0 - x, 2 * x + 1, color);
+  }
+}
+
+void ST7789_Sprite::drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color) {
+  if (!_buffer) return;
+
+  uint16_t swapped = (color >> 8) | (color << 8);
+
+  int16_t f = 1 - r;
+  int16_t ddF_x = 1;
+  int16_t ddF_y = -2 * r;
+  int16_t x = 0;
+  int16_t y = r;
+
+  bool isCompletelyOnScreen = (x0 - r >= 0) && (x0 + r < _sw) && (y0 - r >= 0) && (y0 + r < _sh);
+
+  if (isCompletelyOnScreen) {
+    _buffer[(y0 + r) * _sw + x0] = swapped;
+    _buffer[(y0 - r) * _sw + x0] = swapped;
+    _buffer[y0 * _sw + (x0 + r)] = swapped;
+    _buffer[y0 * _sw + (x0 - r)] = swapped;
+
+    while (x < y) {
+      if (f >= 0) { y--; ddF_y += 2; f += ddF_y; }
+      x++; ddF_x += 2; f += ddF_x;
+
+      _buffer[(y0 + y) * _sw + (x0 + x)] = swapped;
+      _buffer[(y0 + y) * _sw + (x0 - x)] = swapped;
+      _buffer[(y0 - y) * _sw + (x0 + x)] = swapped;
+      _buffer[(y0 - y) * _sw + (x0 - x)] = swapped;
+      _buffer[(y0 + x) * _sw + (x0 + y)] = swapped;
+      _buffer[(y0 + x) * _sw + (x0 - y)] = swapped;
+      _buffer[(y0 - x) * _sw + (x0 + y)] = swapped;
+      _buffer[(y0 - x) * _sw + (x0 - y)] = swapped;
+    }
+  } else {
+    auto drawPixelSafe = [&](int16_t px, int16_t py) {
+        if (px >= 0 && px < _sw && py >= 0 && py < _sh) {
+            _buffer[py * _sw + px] = swapped;
+        }
+    };
+
+    drawPixelSafe(x0, y0 + r);
+    drawPixelSafe(x0, y0 - r);
+    drawPixelSafe(x0 + r, y0);
+    drawPixelSafe(x0 - r, y0);
+
+    while (x < y) {
+      if (f >= 0) { y--; ddF_y += 2; f += ddF_y; }
+      x++; ddF_x += 2; f += ddF_x;
+
+      drawPixelSafe(x0 + x, y0 + y);
+      drawPixelSafe(x0 - x, y0 + y);
+      drawPixelSafe(x0 + x, y0 - y);
+      drawPixelSafe(x0 - x, y0 - y);
+      drawPixelSafe(x0 + y, y0 + x);
+      drawPixelSafe(x0 - y, y0 + x);
+      drawPixelSafe(x0 + y, y0 - x);
+      drawPixelSafe(x0 - y, y0 - x);
+    }
   }
 }
 
