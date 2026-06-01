@@ -142,9 +142,9 @@ class ST7789_ESP32C3 : public Print {
 
     GFXfont *gfxFont;
 
-    inline void writeCommand(uint8_t c);
-    inline void writeData(uint8_t d);
-    inline void writeData16(uint16_t d);
+    void writeCommand(uint8_t c);
+    void writeData(uint8_t d);
+    void writeData16(uint16_t d);
 
 #ifdef LOAD_SD_BMP
     uint16_t read16(fs::File &f);
@@ -180,6 +180,7 @@ class ST7789_Sprite : public Print {
     void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
     void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
     void fillCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
+    void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color);
 
   private:
     ST7789_ESP32C3 *_tft;
