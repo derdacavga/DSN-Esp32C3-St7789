@@ -1,17 +1,20 @@
 #ifndef USER_SETUP_H
 #define USER_SETUP_H
 
+ #define ST7789_1_30_LCD
+// #define ST7789_1_69_LCD
+
 // =========================================================
 // 1. DISPLAY RESOLUTION
 // =========================================================
  #define TFT_WIDTH  240
- #define TFT_HEIGHT 280
+ #define TFT_HEIGHT 240
 
 // =========================================================
 // 2. HARDWARE PINS (ESP32-C3)
 // =========================================================
-#define TFT_MISO  -1  // Not used, set to -1 if not connected, when you use set GPIO 1 
-#define TFT_CS    7  // Chip Select
+#define TFT_MISO  -1  // set to -1 if not connected, or if shared with SD card connect to 1
+#define TFT_CS    -1  // Chip Select
 #define TFT_DC    8  // Data/Command
 #define TFT_RST   5  // Reset (Set to -1 if tied to 3.3V)
 #define TFT_MOSI  6  // SPI Data
